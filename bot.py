@@ -30,6 +30,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "8352201913"))
 PORT = int(os.getenv("PORT", "8080"))
+APP_NAME = os.getenv("APP_NAME", "Jiyanlar TV")
 
 dp = Dispatcher()
 
@@ -76,16 +77,15 @@ async def cmd_start(message: types.Message, command: CommandObject):
     store.create_user(user.id, user.username, fullname, referred_by)
 
     text = (
-        f"👋 Welcome to VidiPay, {user.first_name}!\n\n"
-        "🎬 Watch videos — every second you watch is added to your balance.\n"
-        "👥 Invite friends — each active friend unlocks a frame: +1.05$ for every hour you watch "
-        "(only when you and your friend are both in Tier 1).\n\n"
-        "Tap below to start 👇"
+        f"👋 Salom, {user.first_name}!\n\n"
+        f"🎬 {APP_NAME} ga xush kelibsiz. Multfilm va darslarni ko'ring, "
+        "ko'rgan har bir soniyangiz hisobingizga qo'shiladi.\n\n"
+        "Boshlash uchun pastdagi tugmani bosing 👇"
     )
 
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(
-        text="▶️ Open VidiPay",
+        text="▶️ Ochish",
         web_app=types.WebAppInfo(url=WEBAPP_URL),
     ))
     if user.id == ADMIN_ID:
@@ -106,7 +106,7 @@ async def admin_panel(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("Sizda bu huquq yo'q!", show_alert=True)
         return
     await state.clear()
-    await safe_edit(callback, "🛠️ <b>VidiPay Admin Boshqaruvi</b>\n\nKerakli bo'limni tanlang:", admin_keyboard())
+    await safe_edit(callback, f"🛠️ <b>{html.escape(APP_NAME)} — Admin</b>\n\nKerakli bo'limni tanlang:", admin_keyboard())
     await callback.answer()
 
 
@@ -253,15 +253,15 @@ async def error_middleware(request, handler):
 
 async def api_me(request):
     uid, _ = await read_auth(request)
-    u = store.get_user(uid)
+    data = store.get_profile(uid)
     total, active = store.friends_stats(uid)
-    return web.json_response({
-        "balance": u["balance_micro"] / store.MICRO,
-        "tier": u["tier"],
+    data.update({
+        "app_name": APP_NAME,
         "friends_total": total,
         "friends_active": active,
         "ref_link": f"https://t.me/{request.app['bot_username']}?start=ref_{uid}",
     })
+    return web.json_response(data)
 
 
 async def api_start(request):

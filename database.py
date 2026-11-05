@@ -254,6 +254,50 @@ def finish_session(user_id, session_id):
     }
 
 
+# ---------------- Profil ----------------
+
+TZ_OFFSET_HOURS = float(os.getenv("TZ_OFFSET_HOURS", "5"))  # Toshkent = UTC+5
+
+
+def _day_start():
+    off = TZ_OFFSET_HOURS * 3600
+    return ((time.time() + off) // 86400) * 86400 - off
+
+
+def get_profile(user_id):
+    day_start = _day_start()
+    with _conn() as c:
+        u = c.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
+        if not u:
+            return None
+        total = c.execute(
+            "SELECT COALESCE(SUM(watched_seconds),0) AS s, COALESCE(SUM(earned_micro),0) AS e "
+            "FROM sessions WHERE user_id=?", (user_id,)).fetchone()
+        today = c.execute(
+            "SELECT COALESCE(SUM(watched_seconds),0) AS s, COALESCE(SUM(earned_micro),0) AS e "
+            "FROM sessions WHERE user_id=? AND started_at>=?", (user_id, day_start)).fetchone()
+        hist = c.execute(
+            "SELECT s.started_at, s.watched_seconds, s.earned_micro, v.title "
+            "FROM sessions s LEFT JOIN videos v ON v.id = s.video_id "
+            "WHERE s.user_id=? AND s.status != 'active' AND s.watched_seconds >= 1 "
+            "ORDER BY s.started_at DESC LIMIT 15", (user_id,)).fetchall()
+    return {
+        "user_id": u["user_id"],
+        "fullname": u["fullname"] or "",
+        "username": u["username"] or "",
+        "balance": u["balance_micro"] / MICRO,
+        "today_seconds": int(today["s"]),
+        "today_earned": today["e"] / MICRO,
+        "total_seconds": int(total["s"]),
+        "total_earned": total["e"] / MICRO,
+        "history": [
+            {"title": h["title"] or "Video", "seconds": int(h["watched_seconds"]),
+             "earned": h["earned_micro"] / MICRO, "at": int(h["started_at"])}
+            for h in hist
+        ],
+    }
+
+
 # ---------------- Statistika ----------------
 
 def get_stats():

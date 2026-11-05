@@ -1,67 +1,133 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VidiPay Mini App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Jiyanlar TV</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg: #0f0b1e;
+            --card: #1a1433;
+            --card2: #241b46;
+            --line: #ffffff14;
+            --text: #ffffff;
+            --muted: #9a93b8;
+            --a1: #ffb020;
+            --a2: #ff5e8a;
+            --ok: #ffd166;
+        }
         * { box-sizing: border-box; }
         body {
-            background-color: #0b141a;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
+            background: radial-gradient(120% 55% at 50% -10%, #2c1b66 0%, var(--bg) 62%) fixed;
+            color: var(--text);
+            font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 100vh;
         }
-        .container { padding: 20px; text-align: center; }
-        .balance-card {
-            background: #112229;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #00e69933;
+        .screen { display: none; padding: 20px 18px 100px; }
+        .screen.active { display: block; }
+
+        .hello { font-size: 14px; color: var(--muted); margin: 4px 0 2px; }
+        .brand { font-size: 24px; font-weight: 800; margin: 0 0 18px; }
+        .brand span { color: var(--a1); }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 18px;
+            margin-bottom: 14px;
         }
-        .balance-card p { margin: 6px 0; }
-        .btn-green {
-            background-color: #00e699;
-            color: #0b141a;
-            border: none;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            width: 100%;
+        .label { font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+        .balance { font-size: 46px; font-weight: 800; margin: 6px 0 10px; }
+        .balance small { font-size: 24px; color: var(--muted); margin-left: 2px; }
+        .pill {
+            display: inline-block; font-size: 13px; font-weight: 700;
+            color: var(--ok); background: #ffd16620; border-radius: 999px; padding: 6px 12px;
         }
+
+        .start-btn {
+            display: flex; align-items: center; gap: 14px;
+            width: 100%; border: 0; border-radius: 26px;
+            padding: 16px 18px; margin: 6px 0 16px;
+            background: linear-gradient(135deg, var(--a1), var(--a2));
+            color: #1b0f2e; font-size: 19px; font-weight: 800; text-align: left;
+            box-shadow: 0 12px 30px #ff5e8a44; cursor: pointer;
+        }
+        .start-btn:active { transform: scale(.98); }
+        .start-btn .ico {
+            width: 54px; height: 54px; border-radius: 18px; background: #fff;
+            display: grid; place-items: center; flex: none;
+        }
+        .start-btn small { display: block; font-size: 13px; font-weight: 600; opacity: .75; margin-top: 2px; }
+
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+        .stat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px 8px; text-align: center; }
+        .stat b { display: block; font-size: 16px; margin-top: 4px; }
+        .stat .label { font-size: 11px; }
+
+        /* Profil */
+        .avatar {
+            width: 84px; height: 84px; border-radius: 50%; margin: 6px auto 10px;
+            background: linear-gradient(135deg, var(--a1), var(--a2));
+            color: #1b0f2e; font-size: 36px; font-weight: 800;
+            display: grid; place-items: center;
+        }
+        .center { text-align: center; }
+        .pf-name { font-size: 22px; font-weight: 800; margin: 0; }
+        .pf-sub { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+        .row + .row { border-top: 1px solid var(--line); }
+        .row b { font-size: 16px; }
+        .row span { color: var(--muted); font-size: 14px; }
+        .h-title { font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 20px 4px 8px; }
+        .hist { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0; }
+        .hist + .hist { border-top: 1px solid var(--line); }
+        .hist .t { min-width: 0; }
+        .hist .t b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hist .t span { font-size: 12px; color: var(--muted); }
+        .hist .e { color: var(--ok); font-weight: 800; flex: none; }
+        .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 14px 0; }
+
+        /* Ko'rish */
+        .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
         .btn-back {
-            background: none; border: none; color: #fff;
-            font-size: 18px; float: left; cursor: pointer;
+            background: var(--card); border: 1px solid var(--line); color: #fff;
+            border-radius: 14px; padding: 10px 14px; font-size: 15px; cursor: pointer;
         }
-        .player-circle {
-            width: 120px; height: 120px;
-            border: 4px solid #00e699;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 30px auto;
-            font-size: 36px;
-            cursor: pointer;
+        .btn-end {
+            background: linear-gradient(135deg, var(--a1), var(--a2)); color: #1b0f2e;
+            border: 0; border-radius: 14px; padding: 10px 16px; font-size: 15px; font-weight: 800; cursor: pointer;
         }
-        .muted { font-size: 12px; color: #888; }
-        .green { color: #00e699; }
-        #video-container {
-            background: #000;
-            height: 210px;
-            border-radius: 12px;
-            overflow: hidden;
-        }
+        #video-container { background: #000; height: 210px; border-radius: 18px; overflow: hidden; }
         #video-container iframe { width: 100%; height: 100%; border: 0; }
-        #video-title { margin: 12px 0 0; font-size: 14px; color: #ccc; }
+        #video-title { margin: 12px 4px; font-size: 15px; color: #ddd; }
+        .live { font-size: 34px; font-weight: 800; margin: 6px 0; color: var(--ok); }
+        #status-text { font-size: 13px; color: var(--muted); margin: 0; }
+
+        /* Pastki menyu */
+        .nav {
+            position: fixed; left: 0; right: 0; bottom: 0; display: none;
+            background: #140f29ee; backdrop-filter: blur(12px);
+            border-top: 1px solid var(--line);
+            padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+            justify-content: space-around; z-index: 5;
+        }
+        .nav.on { display: flex; }
+        .nav button {
+            flex: 1; background: none; border: 0; color: var(--muted);
+            font-size: 12px; font-weight: 700; padding: 6px 0; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .nav button.active { color: var(--a1); }
+        .nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
         #toast {
-            position: fixed; left: 16px; right: 16px; bottom: 20px;
-            background: #3a1d1d; color: #ffb4b4;
-            border: 1px solid #ff6b6b66; border-radius: 12px;
-            padding: 12px 16px; font-size: 14px;
+            position: fixed; left: 16px; right: 16px; bottom: 84px;
+            background: #3a1d2b; color: #ffc2d4; border: 1px solid #ff5e8a66;
+            border-radius: 14px; padding: 12px 16px; font-size: 14px;
             display: none; z-index: 10;
         }
     </style>
@@ -69,50 +135,90 @@
 <body>
 
     <!-- Home -->
-    <div class="container" id="home-screen">
-        <h2>VidiPay</h2>
-        <div class="balance-card">
-            <p>MAIN BALANCE</p>
-            <h1 id="user-balance">0.00$</h1>
+    <div class="screen active" id="home-screen">
+        <p class="hello" id="greeting">Salom!</p>
+        <h1 class="brand" id="app-name">Jiyanlar <span>TV</span></h1>
+
+        <div class="card">
+            <div class="label">Balans</div>
+            <div class="balance"><span id="user-balance">0.00</span><small>$</small></div>
+            <span class="pill" id="today-earned">+0.00$ bugun</span>
         </div>
 
-        <div class="player-circle" onclick="startWatching()">▶️</div>
-        <p>Watch &amp; earn</p>
-        <p class="muted">Every verified second counts (8 min = $1)</p>
+        <button class="start-btn" onclick="startWatching()">
+            <span class="ico">
+                <svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7z" fill="#ff5e8a"/></svg>
+            </span>
+            <span>
+                Ko'rishni boshlash
+                <small>8 daqiqa ko'rsangiz = 1$</small>
+            </span>
+        </button>
 
-        <div class="balance-card" style="margin-top: 24px;">
-            <p>FRIENDS</p>
-            <h2 id="friends-text">0 active / 0 total</h2>
-            <p class="muted">Each active friend: +1.05$ per hour you watch (Tier 1 only)</p>
-            <button class="btn-green" style="margin-top: 10px;" onclick="inviteFriends()">👥 Invite friends</button>
+        <div class="stats">
+            <div class="stat"><div class="label">Bugun</div><b id="st-today">0 s</b></div>
+            <div class="stat"><div class="label">Jami</div><b id="st-total">0 s</b></div>
+            <div class="stat"><div class="label">Topilgan</div><b id="st-income">0.00$</b></div>
         </div>
     </div>
 
-    <!-- Watching Screen -->
-    <div class="container" id="watch-screen" style="display: none;">
-        <button class="btn-back" onclick="stopWatching()">❮ Back</button>
-        <h3>Watching</h3>
+    <!-- Profil -->
+    <div class="screen" id="profile-screen">
+        <div class="center">
+            <div class="avatar" id="avatar">?</div>
+            <h2 class="pf-name" id="pf-name">—</h2>
+            <p class="pf-sub" id="pf-username"></p>
+            <p class="pf-sub" id="pf-id"></p>
+        </div>
+
+        <div class="card" style="margin-top: 18px;">
+            <div class="row"><span>Balans</span><b id="pf-balance">0.00$</b></div>
+            <div class="row"><span>Jami ko'rilgan vaqt</span><b id="pf-total-time">0 s</b></div>
+            <div class="row"><span>Jami topilgan</span><b id="pf-total-earned">0.00$</b></div>
+        </div>
+
+        <div class="h-title">Oxirgi ko'rilganlar</div>
+        <div class="card" id="history-list"></div>
+    </div>
+
+    <!-- Ko'rish -->
+    <div class="screen" id="watch-screen">
+        <div class="topbar">
+            <button class="btn-back" onclick="stopWatching()">❮ Orqaga</button>
+            <button class="btn-end" onclick="stopWatching()">Tugatish</button>
+        </div>
 
         <div id="video-container"></div>
         <p id="video-title"></p>
 
-        <div class="balance-card" style="margin-top: 20px;">
-            <p>LIVE REWARD</p>
-            <h2 id="live-reward">+0.0000$</h2>
-            <p id="status-text" class="green muted">Loading...</p>
+        <div class="card">
+            <div class="label">Hozirgi daromad</div>
+            <div class="live" id="live-reward">+0.0000$</div>
+            <p id="status-text">Yuklanmoqda...</p>
         </div>
     </div>
 
-    <!-- Result Screen -->
-    <div class="container" id="result-screen" style="display: none;">
-        <button class="btn-back" onclick="goHome()">❮ Back</button>
-        <h3>Video result</h3>
-        <div class="balance-card" style="margin-top: 40px;">
-            <p>Watched time: <span id="res-time">0s</span></p>
-            <p>Earned: <span id="res-earned" class="green" style="font-weight: bold;">+0.00$</span></p>
+    <!-- Natija -->
+    <div class="screen" id="result-screen">
+        <div class="topbar"><button class="btn-back" onclick="goHome()">❮ Bosh sahifa</button></div>
+        <h2 style="text-align:center;">Natija</h2>
+        <div class="card">
+            <div class="row"><span>Ko'rilgan vaqt</span><b id="res-time">0 s</b></div>
+            <div class="row"><span>Topildi</span><b id="res-earned" style="color: var(--ok);">+0.00$</b></div>
         </div>
-        <p class="muted">The reward was added to your main balance.</p>
+        <p style="color: var(--muted); font-size: 13px; text-align: center;">Pul balansingizga qo'shildi.</p>
     </div>
+
+    <nav class="nav on" id="nav">
+        <button id="nav-home" class="active" onclick="goHome()">
+            <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+            Bosh sahifa
+        </button>
+        <button id="nav-profile" onclick="openProfile()">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+            Profil
+        </button>
+    </nav>
 
     <div id="toast"></div>
 

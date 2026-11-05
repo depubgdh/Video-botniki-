@@ -2,6 +2,10 @@ const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) {
     tg.ready();
     tg.expand();
+    try {
+        tg.setHeaderColor("#0f0b1e");
+        tg.setBackgroundColor("#0f0b1e");
+    } catch (_) {}
 }
 const initData = tg ? tg.initData : "";
 
@@ -13,7 +17,6 @@ let player = null;
 let playerState = -1;
 let beatTimer = null;
 let busy = false;
-let refLink = "";
 
 // ---------- Yordamchi funksiyalar ----------
 
@@ -33,9 +36,13 @@ async function api(path, body = {}) {
 }
 
 function show(name) {
-    for (const s of ["home", "watch", "result"]) {
-        $(s + "-screen").style.display = s === name ? "block" : "none";
+    for (const s of ["home", "profile", "watch", "result"]) {
+        $(s + "-screen").classList.toggle("active", s === name);
     }
+    $("nav").classList.toggle("on", name === "home" || name === "profile");
+    $("nav-home").classList.toggle("active", name === "home");
+    $("nav-profile").classList.toggle("active", name === "profile");
+    window.scrollTo(0, 0);
 }
 
 let toastTimer = null;
@@ -49,6 +56,19 @@ function toast(msg) {
 
 function money(n, digits = 2) {
     return n.toFixed(digits) + "$";
+}
+
+function moneyAuto(n) {
+    return money(n, n > 0 && n < 0.01 ? 4 : 2);
+}
+
+function dur(sec) {
+    sec = Math.floor(sec);
+    if (sec < 60) return sec + " s";
+    const m = Math.floor(sec / 60);
+    if (m < 60) return m + " daq";
+    const h = Math.floor(m / 60);
+    return h + " soat " + (m % 60) + " daq";
 }
 
 // ---------- YouTube pleyer ----------
@@ -66,10 +86,10 @@ function isPlaying() {
 
 function updateStatus() {
     const el = $("status-text");
-    if (document.hidden) el.textContent = "Paused (App closed/minimized)";
-    else if (playerState === 1) el.textContent = "Verified seconds counting...";
-    else if (playerState === 3) el.textContent = "Buffering...";
-    else el.textContent = "Paused";
+    if (document.hidden) el.textContent = "Pauza (ilova yopilgan)";
+    else if (playerState === 1) el.textContent = "Ko'rilayotgan soniyalar hisoblanmoqda...";
+    else if (playerState === 3) el.textContent = "Yuklanmoqda...";
+    else el.textContent = "Pauza";
 }
 
 async function createPlayer(videoId) {
@@ -99,18 +119,85 @@ async function createPlayer(videoId) {
     });
 }
 
-// ---------- Asosiy oqim ----------
+// ---------- Profil va bosh sahifa ----------
+
+function renderHistory(items) {
+    const box = $("history-list");
+    box.textContent = "";
+    if (!items.length) {
+        const d = document.createElement("div");
+        d.className = "empty";
+        d.textContent = "Hali video ko'rilmagan";
+        box.appendChild(d);
+        return;
+    }
+    for (const h of items) {
+        const row = document.createElement("div");
+        row.className = "hist";
+        const t = document.createElement("div");
+        t.className = "t";
+        const title = document.createElement("b");
+        title.textContent = h.title;
+        const sub = document.createElement("span");
+        const when = new Date(h.at * 1000).toLocaleString([], {
+            day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+        });
+        sub.textContent = `${dur(h.seconds)} · ${when}`;
+        t.append(title, sub);
+        const e = document.createElement("div");
+        e.className = "e";
+        e.textContent = "+" + moneyAuto(h.earned);
+        row.append(t, e);
+        box.appendChild(row);
+    }
+}
 
 async function loadMe() {
     try {
         const me = await api("/api/me");
-        $("user-balance").textContent = money(me.balance);
-        $("friends-text").textContent = `${me.friends_active} active / ${me.friends_total} total`;
-        refLink = me.ref_link;
+        const first = (me.fullname || "").split(" ")[0] || "do'st";
+
+        if (me.app_name) {
+            document.title = me.app_name;
+            const parts = me.app_name.split(" ");
+            const last = parts.pop();
+            $("app-name").innerHTML = "";
+            $("app-name").append(parts.join(" ") + (parts.length ? " " : ""));
+            const sp = document.createElement("span");
+            sp.textContent = last;
+            $("app-name").appendChild(sp);
+        }
+        $("greeting").textContent = `Salom, ${first}!`;
+        $("user-balance").textContent = me.balance.toFixed(2);
+        $("today-earned").textContent = `+${moneyAuto(me.today_earned)} bugun`;
+        $("st-today").textContent = dur(me.today_seconds);
+        $("st-total").textContent = dur(me.total_seconds);
+        $("st-income").textContent = money(me.total_earned);
+
+        $("avatar").textContent = (first[0] || "?").toUpperCase();
+        $("pf-name").textContent = me.fullname || first;
+        $("pf-username").textContent = me.username ? "@" + me.username : "";
+        $("pf-id").textContent = "ID " + me.user_id;
+        $("pf-balance").textContent = money(me.balance);
+        $("pf-total-time").textContent = dur(me.total_seconds);
+        $("pf-total-earned").textContent = money(me.total_earned);
+        renderHistory(me.history || []);
     } catch (e) {
         toast(e.message);
     }
 }
+
+function goHome() {
+    show("home");
+    loadMe();
+}
+
+function openProfile() {
+    show("profile");
+    loadMe();
+}
+
+// ---------- Ko'rish oqimi ----------
 
 async function startWatching() {
     if (busy || sessionId) return;
@@ -121,7 +208,7 @@ async function startWatching() {
         show("watch");
         $("video-title").textContent = res.video.title || "";
         $("live-reward").textContent = "+0.0000$";
-        $("status-text").textContent = "Loading...";
+        $("status-text").textContent = "Yuklanmoqda...";
         await createPlayer(res.video.youtube_id);
         beatTimer = setInterval(beat, BEAT_MS);
     } catch (e) {
@@ -137,7 +224,7 @@ async function beat() {
     try {
         const r = await api("/api/beat", { session_id: sessionId, playing: isPlaying() });
         $("live-reward").textContent = "+" + money(r.earned, 4);
-        $("user-balance").textContent = money(r.balance);
+        $("user-balance").textContent = r.balance.toFixed(2);
     } catch (e) {
         toast(e.message);
         if (e.status === 409) stopWatching(true);
@@ -155,38 +242,22 @@ async function stopWatching(silent = false) {
     $("video-container").innerHTML = "";
 
     if (!sid) {
-        show("home");
+        goHome();
         return;
     }
     try {
         const r = await api("/api/stop", { session_id: sid });
-        $("user-balance").textContent = money(r.balance);
-        $("res-time").textContent = `${r.watched}s`;
-        $("res-earned").textContent = "+" + money(r.earned, 4);
-        show(silent ? "home" : "result");
+        $("res-time").textContent = dur(r.watched);
+        $("res-earned").textContent = "+" + moneyAuto(r.earned);
+        if (silent) goHome();
+        else show("result");
     } catch (e) {
         toast(e.message);
-        show("home");
+        goHome();
     }
 }
 
-function goHome() {
-    show("home");
-    loadMe();
-}
-
-function inviteFriends() {
-    if (!refLink) return toast("Havola hali tayyor emas");
-    const text = "Watch videos and earn on VidiPay!";
-    if (tg && tg.openTelegramLink) {
-        tg.openTelegramLink(
-            `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`);
-    } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(refLink).then(() => toast("Havola nusxalandi"));
-    }
-}
-
-// Foydalanuvchi ilovadan chiqib ketsa — hisoblash to'xtaydi (server ham playing=false ni oladi)
+// Ilova yopilsa yoki yashirilsa — hisoblash to'xtaydi (server ham playing=false ni oladi)
 document.addEventListener("visibilitychange", () => {
     if (sessionId) updateStatus();
 });
