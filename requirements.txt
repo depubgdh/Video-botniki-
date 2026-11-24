@@ -1,0 +1,6 @@
+aiogram>=3.4
+numpy
+opencv-python-headless
+librosa
+soundfile
+Pillow
